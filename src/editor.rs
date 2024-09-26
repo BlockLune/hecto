@@ -1,3 +1,4 @@
+use crossterm::cursor;
 use crossterm::event::read;
 use crossterm::event::Event;
 use crossterm::event::Event::Key;
@@ -5,6 +6,7 @@ use crossterm::event::KeyCode::Char;
 use crossterm::event::KeyEvent;
 use crossterm::event::KeyModifiers;
 use crossterm::execute;
+use crossterm::terminal;
 use crossterm::terminal::disable_raw_mode;
 use crossterm::terminal::enable_raw_mode;
 use crossterm::terminal::Clear;
@@ -61,6 +63,14 @@ impl Editor {
         if self.should_quit {
             Self::clear_screen()?;
             print!("Goodbye.\r\n");
+        }
+        Ok(())
+    }
+    fn draw_rows(&self) -> Result<(), std::io::Error> {
+        let (colums, _) = terminal::size()?;
+        for col in 0..colums {
+            cursor::MoveTo(col, 0);
+            print!("~\r\n");
         }
         Ok(())
     }
