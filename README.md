@@ -1,6 +1,6 @@
 # Hecto
 
-一个使用 Rust 编写的简易文本编辑器，相见[教程](https://www.flenker.blog/hecto/)。
+一个使用 Rust 编写的简易文本编辑器，详见[教程](https://www.flenker.blog/hecto/)。
 
 ## 学习笔记
 
