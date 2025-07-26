@@ -244,3 +244,28 @@ fn main() {
     println!("stack is now empty");
 }
 ```
+
+## 其他 Rust 学习资源
+
+### 博客文章
+
+- [2024 年的 Rust 学习指南](https://github.com/pretzelhammer/rust-blog/blob/master/posts/translations/zh-hans/learning-rust-in-2024.md)
+
+### 书籍
+
+- [Rust 程序设计语言](https://rustwiki.org/zh-CN/book/)
+- [Rust 语言圣经](https://course.rs/about-book.html)
+- [通过例子学 Rust](https://rustwiki.org/zh-CN/rust-by-example/)
+- [100 个练习题学习 Rust](https://colobu.com/rust100/)
+- [Rust 宏小册](https://zjp-cn.github.io/tlborm/)
+- [Rust 秘典（死灵书）](https://nomicon.purewhite.io/vec/vec.html)
+- [Comprehensive Rust](https://google.github.io/comprehensive-rust/zh-CN/)
+- [Rust and WebAssembly](https://rustwasm.github.io/docs/book/)
+
+### 课程
+
+- [CS110L: Safety in Systems Programming (Spring 2020)](https://reberhardt.com/cs110l/spring-2020/)
+
+### 练习平台
+
+- [Rust on Exercism](https://exercism.org/tracks/rust)
