@@ -35,7 +35,10 @@ impl Editor {
 
     fn evaluate_event(&mut self, event: &Event) {
         if let Key(KeyEvent {
-            code, modifiers, ..
+            code,
+            modifiers,
+            kind: KeyEventKind::Press,
+            ..
         }) = event
         {
             match code {
