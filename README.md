@@ -44,7 +44,7 @@ cargo doc --open
 - 返回值
 - 异常
 
-在 Rust 中，可以借由 `Result` 这个特殊地类型来直接将可能的异常包裹在返回值中。它有两个变体，`Ok()` 和 `Err()`。
+在 Rust 中，可以借由 `Result` 这个特殊的类型来直接将可能的异常包裹在返回值中。它有两个变体，`Ok()` 和 `Err()`。
 
 下面的例子展示了 `Result` 的用法，同时，展示了其与 `match` 语句的配合使用：
 
@@ -353,7 +353,7 @@ hecto/
 作用上类似于构造器。
 
 - `new` 是约定的工厂函数，编译器不会自动调用。
-- `default` 是标准 trait `Default` 的唯一方法。编译器不会自动调用，只有你显式写 `Buffer::default()` 或 `#[derive(Default)]` 时才会生效。常用于返回当前结构体的合理空值的场景。
+- `default` 是标准 trait `Default` 的唯一方法，编译器也不会自动调用，只有你显式写 `Buffer::default()` 或 `#[derive(Default)]` 时才会生效。常用于返回当前结构体的合理空值的场景。
 
 ```rust
 pub struct Buffer {
@@ -411,7 +411,7 @@ pub fn main() {
 
 - `.take(n)`：限定只取开头的 n 个迭代项
 - `.skip(n)`：跳过开头的 n 个迭代项
-- `.collect()`：将所有迭代项存入一个一个 `Vec` 中
+- `.collect()`：将所有迭代项存入一个 `Vec` 中
 
 ## 其他 Rust 学习资源
 
