@@ -344,6 +344,31 @@ hecto/
 
 在 `main.rs` 中，通过 `mod editor;` 导入我们的自定义的 `editor` 模块，然后就可以使用 `use editor::Editor;` 来使用模块中定义的内容。
 
+### `Option`
+
+这个概念类似于 `Result`，但与 `Result` 的要么正确（`Ok`）、要么错误（`Err`）不同，`Option` 表示的状态都是正常的，不过是存在（`Some`）或者不存在（`None`）。
+
+### `default` 和 `new`
+
+作用上类似于构造器。
+
+- `new` 是约定的工厂函数，编译器不会自动调用。
+- `default` 是标准 trait `Default` 的唯一方法。编译器不会自动调用，只有你显式写 `Buffer::default()` 或 `#[derive(Default)]` 时才会生效。常用于返回当前结构体的合理空值的场景。
+
+```rust
+pub struct Buffer {
+    pub lines: Vec<String>,
+}
+
+impl Default for Buffer {
+    fn default() -> Self {
+        Self {
+            lines: vec![String::from("Hello, World!")],
+        }
+    }
+}
+```
+
 ## 其他 Rust 学习资源
 
 ### 博客文章
