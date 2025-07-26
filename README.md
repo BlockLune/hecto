@@ -35,7 +35,7 @@ cargo doc --open
 
 默认情况下，我们进入的是“规范模式 (Canonical Mode)” / “熟模式 (Cooked Mode)”，但对于我们的文本编辑器，我们需要的是“原始模式 (Raw Mode)”。我们将借助 [crossterm](https://docs.rs/crossterm/latest/crossterm/) 来实现这个目标。
 
->  By default your terminal starts in **canonical mode**, also called **cooked mode**. In this mode, keyboard input is only sent to your program when the user presses `Enter`.
+> By default your terminal starts in **canonical mode**, also called **cooked mode**. In this mode, keyboard input is only sent to your program when the user presses `Enter`.
 
 ### `Result` 和 `match` 语句
 
@@ -118,7 +118,6 @@ cargo clippy --fix -- -W clippy::all  -W clippy::pedantic
 ```
 
 事实上 `all` 并不包含所有内容，它包含的是 `correctness`、`suspicious`、`style`、`complexity`、`perf` 等类别的内容。
-
 
 具体可见 [Clippy 文档](https://doc.rust-lang.org/clippy/index.html)。
 
@@ -244,6 +243,57 @@ fn main() {
     println!("stack is now empty");
 }
 ```
+
+### 字符串（字面量、切片和 `String`）
+
+Rust 中有两种文本表示方式：[`str`](https://doc.rust-lang.org/std/primitive.str.html) 和 `String`。
+
+一个 `str` 指的是内存中的一个字节序列，我们更多地与 `&str` 交互，即指向内存中字节序列的指针。我们称 `str` 为 _字面量字符串（literal string）_，而 `&str` 为 _字符串切片（String Slice）_。
+
+```rust
+fn main() {
+    let slice: &str = "Hello, World";
+    dbg!(slice.as_ptr());
+    dbg!(slice.len());
+    dbg!(slice.as_bytes());
+}
+```
+
+[Rust Playground](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=9b33b1870f543d26da81125b436c5d40)
+
+`str` 非常高效，但如果你想修改它，它也非常难操作 —— 本质上，你需要重新创建一个 `str`。这就是 `String` 出马的地方了。
+
+`String` 是一个 `struct`，修改它非常简单。并且，由于它实现了 `Deref<target=str>` 特性，所以我们可以很方便地使用 `&` 将一个 `String` 转换为 `&str`。
+
+```rust
+fn prints_str(str: &str) {
+    println!("I only print &strs, and the &str I got is: {str}");
+}
+
+
+fn main() {
+    let slice: &str = "Hello!";
+    prints_str(slice);
+
+    let mut string: String = String::from("Hello!");
+    string.pop();
+    string.push_str(", World!");
+    prints_str(&string);
+}
+```
+
+[Rust Playground](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=6f5382263c70502f924fbfc6c117bb84)
+
+在上面的例子中：
+
+- `"Hello!"`：一个字面量（`'static str`）
+- `String::from("Hello!")`：将字符串字面量拷贝到堆上，返回一个新的 `String`，也可用 `"Hello!".to_string()`、`"Hello!".to_owned()` 等写法
+
+| 名称     | 类型             | 存储位置 | 是否拥有 | 可否修改 | 典型创建方式                              |
+| ------ | -------------- | ---- | ---- | ---- | ----------------------------------- |
+| 字符串字面量 | `&'static str` | 只读段  | 否    | 否    | `"hello"`                           |
+| 字符串切片  | `&str`         | 任意内存 | 否    | 否    | `&s[..]`, `&String`, `&'static str` |
+| 堆字符串   | `String`       | 堆    | 是    | 是    | `String::from`, `"x".to_string()`   |
 
 ## 其他 Rust 学习资源
 
