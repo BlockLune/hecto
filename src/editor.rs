@@ -8,7 +8,6 @@ mod terminal;
 use terminal::{Position, Size, Terminal};
 mod view;
 use view::View;
-mod buffer;
 
 #[derive(Copy, Clone, Default)]
 struct Location {
@@ -24,27 +23,22 @@ pub struct Editor {
 }
 
 impl Editor {
-  pub fn new(filenames: Vec<String>) -> Self {
-    if let Some(init_filename) = filenames.get(1) {
-      Self {
-        should_quit: false,
-        cursor_location: Location { row: 0, column: 0 },
-        view: View::new(&init_filename),
-      }
-    } else {
-      Self {
-        should_quit: false,
-        cursor_location: Location { row: 0, column: 0 },
-        view: View::default(),
-      }
-    }
-  }
-
   pub fn run(&mut self) {
     Terminal::initialize().unwrap();
+    self.handle_args();
     let result = self.repl();
     Terminal::terminate().unwrap();
     result.unwrap();
+  }
+
+  fn handle_args(&mut self) {
+    let args: Vec<String> = std::env::args().collect();
+
+    // For now, we will only handle one file.
+    // Notice that the index 0 element is the name of the program itself, so we start from index 1.
+    if let Some(file_name) = args.get(1) {
+      self.view.load(file_name);
+    }
   }
 
   fn repl(&mut self) -> Result<(), std::io::Error> {

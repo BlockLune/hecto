@@ -10,7 +10,6 @@ mod editor; // Load `editor.rs` as a module into this file
 use editor::Editor; // Import `Editor` from the `editor` module, so that we can use `Editor` below
 
 fn main() {
-  let args: Vec<String> = std::env::args().collect();
-  Editor::new(args).run(); // Here we use `Editor` directly (not `editor::Editor`), since we have
+  Editor::default().run(); // Here we use `Editor` directly (not `editor::Editor`), since we have
                            // imported it
 }
