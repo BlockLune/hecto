@@ -297,7 +297,36 @@ fn main() {
 | 字符串切片  | `&str`         | 任意内存 | 否    | 否    | `&s[..]`, `&String`, `&'static str` |
 | 堆字符串   | `String`       | 堆    | 是    | 是    | `String::from`, `"x".to_string()`   |
 
-## 模块
+### 向量
+
+在 `String` 底层，使用了向量（`Vec<u8>`）。`u8` 代表无符号 8 位数字，即字节。
+
+```rust
+fn main() {
+    let mut vec: Vec<usize> = Vec::new();
+    println!("The vec: {:?}",vec);
+    for num in 0..100 {
+        println!();
+        println!("Step {}", num);
+        vec.push(num);
+        println!("The vec: {:?}", vec);
+        println!("Its capacity: {}", vec.capacity());
+        println!("Its length: {}", vec.len());
+        println!("Item number {}: {}", num, vec.get(num).unwrap());
+    }
+}
+```
+
+[Rust Playground](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=29a07bd5c0844be3516c2e5d2c241dab)
+
+- `Vec::new()`：创建一个空向量
+- `.capacity()`：展示当前容量，从上面的运行结果可以看到容量从 4 开始，并在容量不足时倍增（4->8->16->32->...）
+- `.len()`：当前存储的元素个数
+- `.get(index)`：获取索引位置的元素，返回一个 `Option`
+
+了解更多：[Vec in std::vec - Rust](https://doc.rust-lang.org/std/vec/struct.Vec.html)
+
+### 模块
 
 目前的文件结构如下：
 

@@ -1,13 +1,24 @@
+use super::buffer::Buffer;
 use super::terminal::{Size, Terminal};
 
 const NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-pub struct View;
+pub struct View {
+    buffer: Buffer,
+}
+
+impl Default for View {
+    fn default() -> Self {
+        Self {
+            buffer: Buffer::default(),
+        }
+    }
+}
 
 impl View {
-    fn draw_hello_world() -> Result<(), std::io::Error> {
-        Terminal::print("Hello, World!")?;
+    fn draw_content(content: &str) -> Result<(), std::io::Error> {
+        Terminal::print(content)?;
         Ok(())
     }
 
@@ -31,7 +42,7 @@ impl View {
         Ok(())
     }
 
-    pub fn render() -> Result<(), std::io::Error> {
+    pub fn render(&self) -> Result<(), std::io::Error> {
         let Size { height, .. } = Terminal::size()?;
         for current_row in 0..height {
             Terminal::clear_line()?;
@@ -39,8 +50,8 @@ impl View {
             #[allow(clippy::integer_division)]
             if current_row == height / 3 {
                 Self::draw_welcome_message()?;
-            } else if current_row == 0 {
-                Self::draw_hello_world()?;
+            } else if let Some(line) = self.buffer.lines.get(current_row) {
+                Self::draw_content(line)?;
             } else {
                 Self::draw_empty_row()?;
             }
