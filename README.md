@@ -199,12 +199,14 @@ pub fn add(a: i32, b: i32) -> i32 {
 }
 ```
 
-### Debug 和 Release 模式下对于整型溢出的不同行为
+### 整型溢出
 
 在 Rust 里，整型溢出（arithmetic overflow / underflow）在 Debug 和 Release 两种构建模式下的行为是 有明确区别的，这属于编译器的一种“双态策略”。
 
 - Debug 模式：在每一次可能溢出的算数操作后插入运行时检查，如果发生溢出，立刻 `panic`；
 - Release 模式：不包含任何溢出检查，如果发生溢出，直接按二进制补码环绕（wrap-around）处理，例如 `i32:MAX + 1` 得到 `i32:MIN`。
+
+为了防止溢出，可以使用 `saturating_sub`、`saturating_add` 等方法。
 
 ### `if let` 和 `while let` 语句
 
@@ -294,6 +296,24 @@ fn main() {
 | 字符串字面量 | `&'static str` | 只读段  | 否    | 否    | `"hello"`                           |
 | 字符串切片  | `&str`         | 任意内存 | 否    | 否    | `&s[..]`, `&String`, `&'static str` |
 | 堆字符串   | `String`       | 堆    | 是    | 是    | `String::from`, `"x".to_string()`   |
+
+## 模块
+
+目前的文件结构如下：
+
+```text
+hecto/
+├── Cargo.toml
+└── src/
+    ├── main.rs          <- 根 (crate 根)
+    ├── editor.rs        <- `editor` 模块的入口
+    └── editor/
+        └── terminal.rs  <- editor 的子模块
+```
+
+> 以前还有一个 `mod.rs` 的写法，就是把 `editor.rs` 重命名为 `mod.rs` 并放入 `editor/` 目录，现已不再推荐。
+
+在 `main.rs` 中，通过 `mod editor;` 导入我们的自定义的 `editor` 模块，然后就可以使用 `use editor::Editor;` 来使用模块中定义的内容。
 
 ## 其他 Rust 学习资源
 
