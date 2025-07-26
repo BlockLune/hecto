@@ -25,7 +25,7 @@ pub struct Editor {
 
 impl Editor {
     pub fn new(filenames: Vec<String>) -> Self {
-        if let Some(init_filename) = filenames.get(0) {
+        if let Some(init_filename) = filenames.get(1) {
             Self {
                 should_quit: false,
                 cursor_location: Location { row: 0, column: 0 },
