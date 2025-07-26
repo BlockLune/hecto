@@ -24,6 +24,22 @@ pub struct Editor {
 }
 
 impl Editor {
+    pub fn new(filenames: Vec<String>) -> Self {
+        if let Some(init_filename) = filenames.get(0) {
+            Self {
+                should_quit: false,
+                cursor_location: Location { row: 0, column: 0 },
+                view: View::new(&init_filename),
+            }
+        } else {
+            Self {
+                should_quit: false,
+                cursor_location: Location { row: 0, column: 0 },
+                view: View::default(),
+            }
+        }
+    }
+
     pub fn run(&mut self) {
         Terminal::initialize().unwrap();
         let result = self.repl();

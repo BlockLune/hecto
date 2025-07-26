@@ -4,16 +4,9 @@ use super::terminal::{Size, Terminal};
 const NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+#[derive(Default)]
 pub struct View {
     buffer: Buffer,
-}
-
-impl Default for View {
-    fn default() -> Self {
-        Self {
-            buffer: Buffer::default(),
-        }
-    }
 }
 
 impl View {
@@ -60,5 +53,11 @@ impl View {
             }
         }
         Ok(())
+    }
+
+    pub fn new(filename: &str) -> Self {
+        Self {
+            buffer: Buffer::new(filename),
+        }
     }
 }
