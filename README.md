@@ -369,6 +369,50 @@ impl Default for Buffer {
 }
 ```
 
+### 迭代器
+
+`.collect()` 是迭代器上的一个便捷方法，用它可以消费迭代器的所有结果并将结果存储在 `Vec` 中。一个 `Vec` 自身也实现了迭代器相关的特性，它也是可迭代的。
+
+```rust
+pub fn main() {
+    let range = 1..10;
+
+    println!("First range");
+    println!("{:?}", range);
+    for n in range {
+        println!("{:?}", n); // 输出 1-9
+    }
+
+    let second_range = 1..10;
+     println!("Second range");
+      println!("{:?}", second_range);
+    for n in second_range.take(3) {
+        println!("{:?}", n); // 输出 1-3（取 3 个）
+    }
+
+    let third_range = 1..10;
+    println!("Third range");
+    println!("{:?}", third_range);
+    for n in third_range.skip(2) {
+        println!("{:?}", n); // 输出 3-9（跳过开始的 1、2）
+    }
+
+    let fourth_range = 1..10;
+    let vec: Vec<u8> = fourth_range.skip(2).take(3).collect();
+    println!("Vector");
+    println!("{:?}", vec);
+     for n in vec {
+        println!("{:?}", n); // 输出 3、4、5
+    }
+}
+```
+
+[Rust Playground](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=1eb6d8b6d6d6e297648434aec58e96c4)
+
+- `.take(n)`：限定只取开头的 n 个迭代项
+- `.skip(n)`：跳过开头的 n 个迭代项
+- `.collect()`：将所有迭代项存入一个一个 `Vec` 中
+
 ## 其他 Rust 学习资源
 
 ### 博客文章
