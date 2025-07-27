@@ -1,6 +1,9 @@
 use crossterm::cursor::{Hide, MoveTo, Show};
 use crossterm::style::Print;
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode, size, Clear, ClearType};
+use crossterm::terminal::{
+  disable_raw_mode, enable_raw_mode, size, Clear, ClearType, EnterAlternateScreen,
+  LeaveAlternateScreen,
+};
 use crossterm::{queue, Command};
 use std::io::{stdout, Write};
 
@@ -19,7 +22,19 @@ pub struct Size {
 }
 
 impl Terminal {
+  pub fn enter_alternate_screen() -> Result<(), std::io::Error> {
+    Self::queue_command(EnterAlternateScreen)?;
+    Ok(())
+  }
+
+  pub fn leave_alternate_screen() -> Result<(), std::io::Error> {
+    Self::queue_command(LeaveAlternateScreen)?;
+    Ok(())
+  }
+
   pub fn terminate() -> Result<(), std::io::Error> {
+    Self::leave_alternate_screen()?;
+    Self::show_cursor()?;
     Self::execute()?;
     disable_raw_mode()?;
     Ok(())
@@ -27,8 +42,8 @@ impl Terminal {
 
   pub fn initialize() -> Result<(), std::io::Error> {
     enable_raw_mode()?;
+    Self::enter_alternate_screen()?;
     Self::clear_screen()?;
-    Self::move_cursor_to(Position { x: 0, y: 0 })?;
     Self::execute()?;
     Ok(())
   }
@@ -61,6 +76,13 @@ impl Terminal {
 
   pub fn print(string: &str) -> Result<(), std::io::Error> {
     Self::queue_command(Print(string))?;
+    Ok(())
+  }
+
+  pub fn print_row(row: usize, line_text: &str) -> Result<(), std::io::Error> {
+    Self::move_cursor_to(Position { x: 0, y: row })?;
+    Self::clear_line()?;
+    Self::print(line_text)?;
     Ok(())
   }
 

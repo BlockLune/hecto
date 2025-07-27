@@ -3,7 +3,10 @@ use crossterm::event::{
   Event::{self, Key, Resize},
   KeyCode, KeyEvent, KeyEventKind, KeyModifiers,
 };
-use std::cmp::min;
+use std::{
+  cmp::min,
+  panic::{set_hook, take_hook},
+};
 mod terminal;
 use terminal::{Position, Size, Terminal};
 mod view;
@@ -15,50 +18,70 @@ struct Location {
   column: usize,
 }
 
-#[derive(Default)]
 pub struct Editor {
   should_quit: bool,
   cursor_location: Location,
   view: View,
 }
 
-impl Editor {
-  pub fn run(&mut self) {
-    Terminal::initialize().unwrap();
-    self.handle_args();
-    let result = self.repl();
-    Terminal::terminate().unwrap();
-    result.unwrap();
-  }
+impl Drop for Editor {
+    fn drop(&mut self) {
+        let _ = Terminal::terminate();
+        if self.should_quit {
+            let _ = Terminal::print("Goodbye.\r\n");
+        }
+    }
+}
 
-  fn handle_args(&mut self) {
+impl Editor {
+  pub fn new() -> Result<Self, std::io::Error> {
+    let current_hook = take_hook();
+    set_hook(Box::new(move |panic_info| {
+      let _ = Terminal::terminate();
+      current_hook(panic_info);
+    }));
+
+    Terminal::initialize()?;
+    let mut view = View::default();
     let args: Vec<String> = std::env::args().collect();
 
     // For now, we will only handle one file.
     // Notice that the index 0 element is the name of the program itself, so we start from index 1.
     if let Some(file_name) = args.get(1) {
-      self.view.load(file_name);
+      view.load(file_name);
     }
+
+    Ok(Self {
+      should_quit: false,
+      cursor_location: Location::default(),
+      view,
+    })
   }
 
-  fn repl(&mut self) -> Result<(), std::io::Error> {
+  pub fn run(&mut self) {
     loop {
-      self.refresh_screen()?;
+      self.refresh_screen();
       if self.should_quit {
         break;
       }
-      let event = read()?;
-      self.evaluate_event(event)?;
+      match read() {
+        Ok(event) => self.evaluate_event(event),
+        Err(err) => {
+          #[cfg(debug_assertions)]
+          {
+            panic!("Could not read event: {err:?}");
+          }
+        }
+      }
     }
-    Ok(())
   }
 
-  fn move_cursor(&mut self, key_code: KeyCode) -> Result<(), std::io::Error> {
+  fn move_cursor(&mut self, key_code: KeyCode) {
     let Location {
       mut row,
       mut column,
     } = self.cursor_location;
-    let Size { height, width } = Terminal::size()?;
+    let Size { height, width } = Terminal::size().unwrap_or_default();
     match key_code {
       // up: cursor move up
       KeyCode::Up => {
@@ -95,10 +118,9 @@ impl Editor {
       _ => {}
     }
     self.cursor_location = Location { row, column };
-    Ok(())
   }
 
-  fn evaluate_event(&mut self, event: Event) -> Result<(), std::io::Error> {
+  fn evaluate_event(&mut self, event: Event) {
     match event {
       Key(KeyEvent {
         code,
@@ -120,7 +142,7 @@ impl Editor {
           | KeyCode::PageDown
           | KeyCode::Home
           | KeyCode::End => {
-            self.move_cursor(code)?;
+            self.move_cursor(code);
           }
           _ => (),
         }
@@ -136,25 +158,16 @@ impl Editor {
       }
       _ => {}
     }
-
-    Ok(())
   }
 
-  fn refresh_screen(&mut self) -> Result<(), std::io::Error> {
-    Terminal::hide_cursor()?;
-    Terminal::move_cursor_to(Position::default())?;
-    if self.should_quit {
-      Terminal::clear_screen()?;
-      Terminal::print("Goodbye.\r\n")?;
-    } else {
-      self.view.render()?;
-      Terminal::move_cursor_to(Position {
+  fn refresh_screen(&mut self) {
+    let _ =  Terminal::hide_cursor();
+    self.view.render();
+    let _ = Terminal::move_cursor_to(Position {
         x: self.cursor_location.column,
         y: self.cursor_location.row,
-      })?;
-    }
-    Terminal::show_cursor()?;
-    Terminal::execute()?;
-    Ok(())
+    });
+    let _ = Terminal::show_cursor();
+    let _ = Terminal::execute();
   }
 }
