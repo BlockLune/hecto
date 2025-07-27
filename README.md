@@ -418,6 +418,120 @@ pub fn main() {
 - `.skip(n)`：跳过开头的 n 个迭代项
 - `.collect()`：将所有迭代项存入一个 `Vec` 中
 
+### `panic!`
+
+Rust 使用 `panic!` 来表示它不知道如何处理的错误，默认操作是**展开栈（unwinding the stack）**，这包括一些清理和打印调用栈信息（表现为堆栈追踪 (Stack trace)）。
+
+可以在 `Cargo.toml` 中配置在发生 `panic!` 时立即中止：
+
+```toml
+panic = 'abort'
+```
+
+这会使最终程序更小，但它可能会留下一些未清理的资源，例如已打开文件或挂起的网络连接。
+
+处理 `panic!` 有以下几种方法：
+
+- **捕获展开（Catching Unwinds）**：你可以在展开操作时通过 `std::panic::catch_unwind` 捕获一个恐慌，从而使程序有可能继续运行
+- **创建自定义恐慌处理程序（Panic Handler）**：如果不希望简单地将控制权交还操作系统，那么就需要自定义其行为。下面是一个自定义恐慌处理程序的例子，其中的 `-> !` 表示这个函数永远不会返回：
+
+  ```rust
+  #[panic_handler]
+  fn panic(info: &PanicInfo) -> ! {
+      loop {}
+  }
+  ```
+- **恐慌钩子（Panic Hooks）**：在恐慌展开前，你可以定义一些函数，以实现清理或设置更受控的崩溃等目的
+
+借助 `#[cfg(debug_assertions)]` 和 `debug_assert!`，我们可以让部分检查仅在 Debug 构建中进行，而从生产发布中完全移除。
+
+```rust
+fn expensive_check() -> bool {
+    println!("Performing expensive check!");
+    return true;
+}
+
+#[cfg(debug_assertions)]
+fn other_expensive_check() -> bool {
+    println!("Thoroughly performing some other expensive check!");
+    return true;
+}
+
+
+#[cfg(not(debug_assertions))]
+fn other_expensive_check() -> bool {
+    println!("Only superficially performing some other expensive  check!");
+    return true;
+}
+
+
+fn main() {
+    println!("Release Checks:");
+    assert!(expensive_check());
+    assert!(expensive_check(), "Expensive check failed in Release Build!");
+    assert_eq!(expensive_check(), true);
+    assert_ne!(expensive_check(), false);
+
+    #[cfg(debug_assertions)]
+    {
+        println!("Debug Checks:");
+    }
+
+    debug_assert!(expensive_check());
+    debug_assert!(expensive_check(), "Expensive check failed in Debug Build!");
+    debug_assert_eq!(expensive_check(), true);
+    debug_assert_ne!(expensive_check(), false);
+
+    println!("Checks from conditional functions:");
+    assert!(other_expensive_check());
+
+    println!("All checks passed");
+}
+```
+
+[Rust Playground](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=7469cd789a9d25760ce67f10b40c6639)
+
+### 生命周期
+
+下面这段代码无法通过编译，因为 Rust 编译器无法在编译时确定从 `longest` 返回的 `&str` 将存活多久：
+
+```rust
+fn longest(x: &str, y: &str) -> &str {
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
+```
+
+为解决这个问题，需要显式地定义生命周期：
+
+```rust
+
+fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
+```
+
+- `'a`：一个通用的生命周期标记
+- `'static`：表示某数据在整个程序运行期间都存在
+- `'_`：匿名生命周期
+
+在生命周期结束时，Rust 通过 `Drop` 特性中的 `drop()` 函数确定如何清理资源。
+
+需要注意的是，`drop()` 在恐慌时也会被调用，并且如果其中再次引发了恐慌，会形成“双重恐慌”的局面。
+
+### 备用屏幕
+
+终端提供两个缓冲区：主屏幕和备用屏幕。对于我们的使用场景，我们可以在备用屏幕上打印一些日志，以方便调试。
+
+我们可以用 crossterm 的 `EnterAlternateScreen` 和 `LeaveAlternateScreen` 来切入和切出备用屏幕。
+
 ## 其他 Rust 学习资源
 
 ### 博客文章
