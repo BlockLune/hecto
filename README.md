@@ -344,6 +344,11 @@ hecto/
 
 在 `main.rs` 中，通过 `mod editor;` 导入我们的自定义的 `editor` 模块，然后就可以使用 `use editor::Editor;` 来使用模块中定义的内容。
 
+了解更多：
+
+- [Clear explanation of Rust’s module system](https://www.sheshbabu.com/posts/rust-module-system/)
+- [【翻译】关于Rust模块系统的清晰解释 - 知乎](https://zhuanlan.zhihu.com/p/164556350)
+
 ### `Option`
 
 这个概念类似于 `Result`，但与 `Result` 的要么正确（`Ok`）、要么错误（`Err`）不同，`Option` 表示的状态都是正常的，不过是存在（`Some`）或者不存在（`None`）。
