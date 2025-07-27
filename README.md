@@ -544,6 +544,52 @@ vim、less、tmux、man、htop 等全屏 CLI 程序启动时切换到 alternate 
 
 我们可以用 crossterm 的 `EnterAlternateScreen` 和 `LeaveAlternateScreen` 来切入和切出备用屏幕。
 
+### 闭包
+
+Rust 中的闭包语法来自于 Ruby：
+
+```rust
+fn main() {
+    let some_closure = |x| x+1;
+    let some_value = some_closure(5);
+    dbg!(some_value);
+    let some_more_sophisticated_closure = |name| {
+        println!("Hey, {}, how are you?", name);
+    };
+    some_more_sophisticated_closure("Philipp");
+}
+```
+
+[Rust Playground](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=be2c5802fee314941a2d0d3ee67b74fc)
+
+闭包可以访问闭包外的变量。如果使用的变量实现了 `Copy` 特性，闭包将有一个可用的副本来处理。如果不是，需要使用 `move` 移动语句将相关外部变量移入闭包中。在下面的例子中， `message` 在 `greet` 定义后对 `main` 不可访问：
+
+```rust
+fn main() {
+    let message = String::from("Hello");
+    let greet = move |name| println!("{}, {}!", message, name);
+    greet("Philipp"); // that's my name, in case you forgot
+}
+```
+
+`Box` 类似于 C++ 中的 `unique_ptr`。
+
+代码中的例子：
+
+```rust
+// 获取当前的 Panic Hook，默认情况下打印恐慌
+let current_hook = std::panic::take_hook();
+
+// 定义一个新的闭包，包含对 PanicInfo 的引用
+// 使用 `move` 将任何需要的外部变量移入闭包
+// 将闭包放在一个 `Box` 中并将其设置为新的 Panic Hook
+std::panic::set_hook(Box::new(move |panic_info| {
+    // 这里是我们自定义的的 Panic Hook
+    // 执行原来的 Hook 以保留原有的 Panic 输出行为
+    current_hook(panic_info);
+}));
+```
+
 ## 其他 Rust 学习资源
 
 ### 博客文章
