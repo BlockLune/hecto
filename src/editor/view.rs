@@ -1,4 +1,4 @@
-use super::terminal::{Size, Terminal};
+use super::terminal::{Position, Size, Terminal};
 mod buffer;
 use buffer::Buffer;
 
@@ -8,18 +8,37 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Default)]
 pub struct View {
   buffer: Buffer,
+  current_width: usize,
+  current_height: usize,
 }
 
-// draw utilitiy functions
 impl View {
-  fn draw_content(content: &str) -> Result<(), std::io::Error> {
-    Terminal::print(content)?;
-    Ok(())
+  pub fn load(&mut self, filename: &str) {
+    if let Ok(buffer) = Buffer::load(filename) {
+      self.buffer = buffer;
+    }
   }
 
-  fn draw_welcome_message() -> Result<(), std::io::Error> {
+  pub fn render(&mut self) -> Result<(), std::io::Error> {
+      let Size { width, height } = Terminal::size()?;
+
+      if width == 0 || height == 0 {
+          return Ok(());
+      }
+
+      if width == self.current_width && height == self.current_height {
+          return Ok(());
+      }
+
+      self.current_width = width;
+      self.current_height = height;
+      self.render_screen(width, height)?;
+
+      Ok(())
+  }
+
+  fn get_welcome_message_string(width: usize) -> Result<String, std::io::Error> {
     let mut welcome_message = format!("{NAME} editor -- version {VERSION}");
-    let width = Terminal::size()?.width;
     let len = welcome_message.len();
 
     #[allow(clippy::integer_division)]
@@ -28,45 +47,38 @@ impl View {
 
     welcome_message = format!("~{spaces}{welcome_message}");
     welcome_message.truncate(width);
-    Terminal::print(&welcome_message)?;
+
+    Ok(welcome_message)
+  }
+
+  fn render_line(line: &str, width: usize) -> Result<(), std::io::Error> {
+    let safe_line = if line.len() > width {
+      &line[0..width]
+    } else {
+      line
+    };
+
+    Terminal::print(safe_line)?;
     Ok(())
   }
 
-  fn draw_empty_row() -> Result<(), std::io::Error> {
-    Terminal::print("~")?;
-    Ok(())
-  }
-}
-
-// buffer loading
-impl View {
-  pub fn load(&mut self, filename: &str) {
-    if let Ok(buffer) = Buffer::load(filename) {
-      self.buffer = buffer;
-    }
-  }
-}
-
-// render
-impl View {
-  pub fn render(&self) -> Result<(), std::io::Error> {
-    let Size { height, .. } = Terminal::size()?;
-    for current_row in 0..height {
+  fn render_screen(&self, width: usize, height: usize) -> Result<(), std::io::Error> {
+    for i in 0..height {
       Terminal::clear_line()?;
 
       #[allow(clippy::integer_division)]
-      if self.buffer.is_empty() && current_row == height / 3 {
-        Self::draw_welcome_message()?;
-      } else if let Some(line) = self.buffer.lines.get(current_row) {
-        Self::draw_content(line)?;
+      if self.buffer.is_empty() && i == height / 3 {
+        Self::render_line(&(Self::get_welcome_message_string(width)?), width)?;
+      } else if let Some(line) = self.buffer.lines.get(i) {
+        Self::render_line(line, width)?;
       } else {
-        Self::draw_empty_row()?;
+        Self::render_line("~", width)?;
       }
-
-      if current_row.saturating_add(1) < height {
-        Terminal::print("\r\n")?;
+      if i.saturating_add(1) < height {
+        Terminal::move_cursor_to(Position { x: 0, y: i + 1 })?;
       }
     }
+
     Ok(())
   }
 }

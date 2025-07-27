@@ -1,6 +1,6 @@
 use crossterm::event::{
   read,
-  Event::{self, Key},
+  Event::{self, Key, Resize},
   KeyCode, KeyEvent, KeyEventKind, KeyModifiers,
 };
 use std::cmp::min;
@@ -99,36 +99,42 @@ impl Editor {
   }
 
   fn evaluate_event(&mut self, event: &Event) -> Result<(), std::io::Error> {
-    if let Key(KeyEvent {
-      code,
-      modifiers,
-      kind: KeyEventKind::Press,
-      ..
-    }) = event
-    {
-      match code {
-        // ctrl + q: quit
-        KeyCode::Char('q') if *modifiers == KeyModifiers::CONTROL => {
-          self.should_quit = true;
+    match event {
+      Key(KeyEvent {
+        code,
+        modifiers,
+        kind: KeyEventKind::Press,
+        ..
+      }) => {
+        match code {
+          // ctrl + q: quit
+          KeyCode::Char('q') if *modifiers == KeyModifiers::CONTROL => {
+            self.should_quit = true;
+          }
+          // up, down, left, right, pageup, pagedown, home, end: move cursor
+          KeyCode::Up
+          | KeyCode::Down
+          | KeyCode::Left
+          | KeyCode::Right
+          | KeyCode::PageUp
+          | KeyCode::PageDown
+          | KeyCode::Home
+          | KeyCode::End => {
+            self.move_cursor(*code)?;
+          }
+          _ => (),
         }
-        // up, down, left, right, pageup, pagedown, home, end: move cursor
-        KeyCode::Up
-        | KeyCode::Down
-        | KeyCode::Left
-        | KeyCode::Right
-        | KeyCode::PageUp
-        | KeyCode::PageDown
-        | KeyCode::Home
-        | KeyCode::End => {
-          self.move_cursor(*code)?;
-        }
-        _ => (),
       }
+      Resize(_, _) => {
+          self.view.render()?;
+      }
+      _ => {}
     }
+
     Ok(())
   }
 
-  fn refresh_screen(&self) -> Result<(), std::io::Error> {
+  fn refresh_screen(&mut self) -> Result<(), std::io::Error> {
     Terminal::hide_cursor()?;
     Terminal::move_cursor_to(Position::default())?;
     if self.should_quit {
