@@ -11,8 +11,8 @@ use view::View;
 
 #[derive(Copy, Clone, Default)]
 struct Location {
-  pub row: usize,
-  pub column: usize,
+  row: usize,
+  column: usize,
 }
 
 #[derive(Default)]
@@ -48,7 +48,7 @@ impl Editor {
         break;
       }
       let event = read()?;
-      self.evaluate_event(&event)?;
+      self.evaluate_event(event)?;
     }
     Ok(())
   }
@@ -62,19 +62,19 @@ impl Editor {
     match key_code {
       // up: cursor move up
       KeyCode::Up => {
-        column = column.saturating_sub(1);
+        row = row.saturating_sub(1);
       }
       // down: cursor move down
       KeyCode::Down => {
-        column = min(height.saturating_sub(1), column.saturating_add(1));
+        row = min(height.saturating_sub(1), row.saturating_add(1));
       }
       // left: cursor move left
       KeyCode::Left => {
-        row = row.saturating_sub(1);
+        column = column.saturating_sub(1);
       }
       // right: cursor move right
       KeyCode::Right => {
-        row = min(width.saturating_sub(1), row.saturating_add(1));
+        column = min(width.saturating_sub(1), column.saturating_add(1));
       }
       // pageup: cursor move to top
       KeyCode::PageUp => {
@@ -98,7 +98,7 @@ impl Editor {
     Ok(())
   }
 
-  fn evaluate_event(&mut self, event: &Event) -> Result<(), std::io::Error> {
+  fn evaluate_event(&mut self, event: Event) -> Result<(), std::io::Error> {
     match event {
       Key(KeyEvent {
         code,
@@ -108,7 +108,7 @@ impl Editor {
       }) => {
         match code {
           // ctrl + q: quit
-          KeyCode::Char('q') if *modifiers == KeyModifiers::CONTROL => {
+          KeyCode::Char('q') if modifiers == KeyModifiers::CONTROL => {
             self.should_quit = true;
           }
           // up, down, left, right, pageup, pagedown, home, end: move cursor
@@ -120,13 +120,19 @@ impl Editor {
           | KeyCode::PageDown
           | KeyCode::Home
           | KeyCode::End => {
-            self.move_cursor(*code)?;
+            self.move_cursor(code)?;
           }
           _ => (),
         }
       }
-      Resize(_, _) => {
-          self.view.render()?;
+      Resize(width_u16, height_u16) => {
+        // clippy::as_conversions: Will run into problems for rare edge case systems where usize < u16
+        #[allow(clippy::as_conversions)]
+        let height = height_u16 as usize;
+        // clippy::as_conversions: Will run into problems for rare edge case systems where usize < u16
+        #[allow(clippy::as_conversions)]
+        let width = width_u16 as usize;
+        self.view.resize(Size { height, width });
       }
       _ => {}
     }
@@ -143,8 +149,8 @@ impl Editor {
     } else {
       self.view.render()?;
       Terminal::move_cursor_to(Position {
-        x: self.cursor_location.row,
-        y: self.cursor_location.column,
+        x: self.cursor_location.column,
+        y: self.cursor_location.row,
       })?;
     }
     Terminal::show_cursor()?;
