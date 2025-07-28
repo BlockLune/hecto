@@ -6,10 +6,9 @@
   clippy::as_conversions,
   clippy::integer_division
 )]
-mod editor; // Load `editor.rs` as a module into this file
-use editor::Editor; // Import `Editor` from the `editor` module, so that we can use `Editor` below
+mod editor;
+use editor::Editor;
 
 fn main() {
-  Editor::new().unwrap().run(); // Here we use `Editor` directly (not `editor::Editor`), since we have
-                           // imported it
+  Editor::new().unwrap().run();
 }
