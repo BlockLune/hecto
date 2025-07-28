@@ -7,7 +7,7 @@ use crossterm::terminal::{
 use crossterm::{queue, Command};
 use std::io::{stdout, Write};
 
-pub struct Terminal {}
+pub struct Terminal;
 
 #[derive(Copy, Clone, Default)]
 pub struct Position {

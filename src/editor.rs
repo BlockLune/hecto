@@ -1,3 +1,6 @@
+mod terminal;
+mod view;
+
 use crossterm::event::{
   read,
   Event::{self, Key, Resize},
@@ -7,30 +10,22 @@ use std::{
   cmp::min,
   panic::{set_hook, take_hook},
 };
-mod terminal;
 use terminal::{Position, Size, Terminal};
-mod view;
 use view::View;
 
-#[derive(Copy, Clone, Default)]
-struct Location {
-  row: usize,
-  column: usize,
-}
-
 pub struct Editor {
+  position: Position,
   should_quit: bool,
-  cursor_location: Location,
   view: View,
 }
 
 impl Drop for Editor {
-    fn drop(&mut self) {
-        let _ = Terminal::terminate();
-        if self.should_quit {
-            let _ = Terminal::print("Goodbye.\r\n");
-        }
+  fn drop(&mut self) {
+    let _ = Terminal::terminate();
+    if self.should_quit {
+      let _ = Terminal::print("Goodbye.\r\n");
     }
+  }
 }
 
 impl Editor {
@@ -52,8 +47,8 @@ impl Editor {
     }
 
     Ok(Self {
+      position: Position::default(),
       should_quit: false,
-      cursor_location: Location::default(),
       view,
     })
   }
@@ -77,47 +72,38 @@ impl Editor {
   }
 
   fn move_cursor(&mut self, key_code: KeyCode) {
-    let Location {
-      mut row,
-      mut column,
-    } = self.cursor_location;
-    let Size { height, width } = Terminal::size().unwrap_or_default();
+    let Size { width, height } = Terminal::size().unwrap_or_default();
+    let Position { mut x, mut y } = self.position;
     match key_code {
-      // up: cursor move up
       KeyCode::Up => {
-        row = row.saturating_sub(1);
+        y = y.saturating_sub(1);
       }
-      // down: cursor move down
       KeyCode::Down => {
-        row = min(height.saturating_sub(1), row.saturating_add(1));
+        y = min(y.saturating_add(1), height.saturating_sub(1));
       }
-      // left: cursor move left
       KeyCode::Left => {
-        column = column.saturating_sub(1);
+        x = x.saturating_sub(1);
       }
-      // right: cursor move right
       KeyCode::Right => {
-        column = min(width.saturating_sub(1), column.saturating_add(1));
+        x = min(x.saturating_add(1), width.saturating_sub(1));
       }
-      // pageup: cursor move to top
       KeyCode::PageUp => {
-        row = 0;
+        y = 0;
       }
-      // pagedown: cursor move to bottom
       KeyCode::PageDown => {
-        row = height.saturating_sub(1);
+        y = height.saturating_sub(1);
       }
-      // home: cursor move to leftmost
       KeyCode::Home => {
-        column = 0;
+        x = 0;
       }
-      // end: cursor move to rightmost
       KeyCode::End => {
-        column = width.saturating_sub(1);
+        x = width.saturating_sub(1);
       }
       _ => {}
     }
-    self.cursor_location = Location { row, column };
+    self.position = Position { x, y };
+
+    self.view.move_cursor(key_code);
   }
 
   fn evaluate_event(&mut self, event: Event) {
@@ -161,12 +147,9 @@ impl Editor {
   }
 
   fn refresh_screen(&mut self) {
-    let _ =  Terminal::hide_cursor();
+    let _ = Terminal::hide_cursor();
     self.view.render();
-    let _ = Terminal::move_cursor_to(Position {
-        x: self.cursor_location.column,
-        y: self.cursor_location.row,
-    });
+    let _ = Terminal::move_cursor_to(self.position);
     let _ = Terminal::show_cursor();
     let _ = Terminal::execute();
   }
