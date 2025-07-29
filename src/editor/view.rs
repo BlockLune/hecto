@@ -15,10 +15,10 @@ pub struct Location {
 
 pub struct View {
   buffer: Buffer,
-  location: Location,
   needs_redraw: bool,
-  scroll_offset: Location,
   size: Size,
+  pub location: Location,
+  pub scroll_offset: Location,
 }
 
 impl Default for View {

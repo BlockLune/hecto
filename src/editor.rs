@@ -6,10 +6,7 @@ use crossterm::event::{
   Event::{self, Key, Resize},
   KeyCode, KeyEvent, KeyEventKind, KeyModifiers,
 };
-use std::{
-  cmp::min,
-  panic::{set_hook, take_hook},
-};
+use std::panic::{set_hook, take_hook};
 use terminal::{Position, Size, Terminal};
 use view::View;
 
@@ -72,38 +69,11 @@ impl Editor {
   }
 
   fn move_cursor(&mut self, key_code: KeyCode) {
-    let Size { width, height } = Terminal::size().unwrap_or_default();
-    let Position { mut x, mut y } = self.position;
-    match key_code {
-      KeyCode::Up => {
-        y = y.saturating_sub(1);
-      }
-      KeyCode::Down => {
-        y = min(y.saturating_add(1), height.saturating_sub(1));
-      }
-      KeyCode::Left => {
-        x = x.saturating_sub(1);
-      }
-      KeyCode::Right => {
-        x = min(x.saturating_add(1), width.saturating_sub(1));
-      }
-      KeyCode::PageUp => {
-        y = 0;
-      }
-      KeyCode::PageDown => {
-        y = height.saturating_sub(1);
-      }
-      KeyCode::Home => {
-        x = 0;
-      }
-      KeyCode::End => {
-        x = width.saturating_sub(1);
-      }
-      _ => {}
-    }
-    self.position = Position { x, y };
-
     self.view.move_cursor(key_code);
+    self.position = Position {
+      x: self.view.location.column - self.view.scroll_offset.column,
+      y: self.view.location.row - self.view.scroll_offset.row,
+    }
   }
 
   fn evaluate_event(&mut self, event: Event) {
