@@ -17,6 +17,11 @@ pub struct View {
   buffer: Buffer,
   needs_redraw: bool,
   size: Size,
+  // The column the user wants the cursor to be on.
+  // This is used to preserve the horizontal cursor position when moving vertically
+  // across lines of different lengths.
+  virtual_column: usize,
+
   pub location: Location,
   pub scroll_offset: Location,
 }
@@ -29,6 +34,7 @@ impl Default for View {
       needs_redraw: true,
       scroll_offset: Location::default(),
       size: Terminal::size().unwrap_or_default(),
+      virtual_column: 0,
     }
   }
 }
@@ -44,10 +50,12 @@ impl View {
     match key_code {
       KeyCode::Up => {
         row = row.saturating_sub(1);
+        column = self.virtual_column;
       }
       KeyCode::Down => {
         if row < self.buffer.lines.len() {
           row = row.saturating_add(1);
+          column = self.virtual_column;
         }
       }
       KeyCode::Left => {
@@ -61,6 +69,7 @@ impl View {
             column = 0;
           }
         }
+        self.virtual_column = column;
       }
       KeyCode::Right => {
         if let Some(line) = self.buffer.lines.get(row) {
@@ -71,6 +80,7 @@ impl View {
             column = 0;
           }
         }
+        self.virtual_column = column;
       }
       KeyCode::PageUp => {
         row = row.saturating_sub(height);
@@ -83,11 +93,13 @@ impl View {
       }
       KeyCode::Home => {
         column = 0;
+        self.virtual_column = column;
       }
       KeyCode::End => {
         if let Some(line) = self.buffer.lines.get(row) {
           column = line.len();
         }
+        self.virtual_column = column;
       }
       _ => {}
     }
