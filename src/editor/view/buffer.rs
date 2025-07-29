@@ -14,7 +14,4 @@ impl Buffer {
         .collect(),
     })
   }
-  pub fn is_empty(&self) -> bool {
-    self.lines.is_empty()
-  }
 }

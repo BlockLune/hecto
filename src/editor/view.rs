@@ -35,7 +35,7 @@ impl Default for View {
 
 impl View {
   pub fn move_cursor(&mut self, key_code: KeyCode) {
-    let Size { width: _, height } = self.size;
+    let Size { height, .. } = self.size;
     let Location {
       mut column,
       mut row,
