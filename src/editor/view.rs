@@ -41,43 +41,51 @@ impl View {
       mut row,
     } = self.location;
 
+    let row_range = (self.scroll_offset.row, self.scroll_offset.row + height);
+    let column_range = (self.scroll_offset.column, self.scroll_offset.column + width);
+
     match key_code {
       KeyCode::Up => {
         row = row.saturating_sub(1);
+        if row < row_range.0 {
+          self.scroll_offset.row -= 1;
+        }
       }
       KeyCode::Down => {
         row = row.saturating_add(1);
+        if row >= row_range.1 {
+          self.scroll_offset.row += 1;
+        }
       }
       KeyCode::Left => {
         column = column.saturating_sub(1);
+        if column < column_range.0 {
+          self.scroll_offset.column -= 1;
+        }
       }
       KeyCode::Right => {
         column = column.saturating_add(1);
+        if column > column_range.1 {
+          self.scroll_offset.column += 1;
+        }
       }
       KeyCode::PageUp => {
-        row = self.scroll_offset.row;
+        row = row_range.0;
       }
       KeyCode::PageDown => {
-        row = self.scroll_offset.row + height.saturating_sub(1);
+        row = row_range.1.saturating_sub(1);
       }
       KeyCode::Home => {
-        column = self.scroll_offset.column;
+        column = column_range.0;
       }
       KeyCode::End => {
-        column = self.scroll_offset.column + width.saturating_sub(1);
+        column = column_range.1.saturating_sub(1);
       }
       _ => {}
     }
 
     self.location = Location { column, row };
-
-    if column < self.scroll_offset.column
-      || column > self.scroll_offset.column + width.saturating_sub(1)
-      || row < self.scroll_offset.row
-      || row > self.scroll_offset.row + width.saturating_sub(1)
-    {
-      self.needs_redraw = true;
-    }
+    self.needs_redraw = true;
   }
 
   pub fn resize(&mut self, to: Size) {
