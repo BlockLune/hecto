@@ -92,7 +92,6 @@ impl View {
     }
   }
 
-  // TODO: update this
   pub fn render(&mut self) {
     if !self.needs_redraw {
       return;
@@ -106,18 +105,19 @@ impl View {
     #[allow(clippy::integer_division)]
     let vertical_center = height / 2;
 
-    for current_row in 0..height {
+    for current_row in self.scroll_offset.row..(self.scroll_offset.row + height) {
+      let current_y = current_row - self.scroll_offset.row;
       if let Some(line) = self.buffer.lines.get(current_row) {
         let truncated_line = if line.len() >= width {
-          &line[0..width]
+          &line[self.scroll_offset.column..(self.scroll_offset.column + width)]
         } else {
           line
         };
-        Self::render_line(current_row, truncated_line);
-      } else if current_row == vertical_center && self.buffer.is_empty() {
-        Self::render_line(current_row, &Self::get_welcome_message_string(width));
+        Self::render_line(current_y, truncated_line);
+      } else if current_y == vertical_center && self.buffer.is_empty() {
+        Self::render_line(current_y, &Self::get_welcome_message_string(width));
       } else {
-        Self::render_line(current_row, "~");
+        Self::render_line(current_y, "~");
       }
     }
     self.needs_redraw = false;
@@ -137,9 +137,8 @@ impl View {
     welcome_message
   }
 
-  // TODO: update this
-  fn render_line(at: usize, line_text: &str) {
-    let result = Terminal::print_row(at, line_text);
+  fn render_line(at_y: usize, line_text: &str) {
+    let result = Terminal::print_row(at_y, line_text);
     debug_assert!(result.is_ok(), "Failed to render line");
   }
 }
