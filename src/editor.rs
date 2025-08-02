@@ -1,17 +1,14 @@
+mod editorcommand;
 mod terminal;
 mod view;
 
-use crossterm::event::{
-  read,
-  Event::{self, Key, Resize},
-  KeyCode, KeyEvent, KeyEventKind, KeyModifiers,
-};
+use crossterm::event::{read, Event, KeyEvent, KeyEventKind};
+use editorcommand::EditorCommand;
 use std::panic::{set_hook, take_hook};
-use terminal::{Position, Size, Terminal};
+use terminal::Terminal;
 use view::View;
 
 pub struct Editor {
-  position: Position,
   should_quit: bool,
   view: View,
 }
@@ -44,7 +41,6 @@ impl Editor {
     }
 
     Ok(Self {
-      position: Position::default(),
       should_quit: false,
       view,
     })
@@ -68,58 +64,45 @@ impl Editor {
     }
   }
 
-  fn move_cursor(&mut self, key_code: KeyCode) {
-    self.view.move_cursor(key_code);
-    self.position = Position {
-      x: self.view.location.column - self.view.scroll_offset.column,
-      y: self.view.location.row - self.view.scroll_offset.row,
-    }
-  }
-
+  // needless_pass_by_value: Event is not huge, so there is not a
+  // performance overhead in passing by value, and pattern matching in this
+  // function would be needlessly complicated if we pass by reference here.
+  #[allow(clippy::needless_pass_by_value)]
   fn evaluate_event(&mut self, event: Event) {
-    match event {
-      Key(KeyEvent {
-        code,
-        modifiers,
-        kind: KeyEventKind::Press,
-        ..
-      }) => {
-        match code {
-          // ctrl + q: quit
-          KeyCode::Char('q') if modifiers == KeyModifiers::CONTROL => {
+    let should_process = match &event {
+      Event::Key(KeyEvent { kind, .. }) => kind == &KeyEventKind::Press,
+      Event::Resize(_, _) => true,
+      _ => false,
+    };
+
+    if should_process {
+      match EditorCommand::try_from(event) {
+        Ok(command) => {
+          if matches!(command, EditorCommand::Quit) {
             self.should_quit = true;
+          } else {
+            self.view.handle_command(command);
           }
-          // up, down, left, right, pageup, pagedown, home, end: move cursor
-          KeyCode::Up
-          | KeyCode::Down
-          | KeyCode::Left
-          | KeyCode::Right
-          | KeyCode::PageUp
-          | KeyCode::PageDown
-          | KeyCode::Home
-          | KeyCode::End => {
-            self.move_cursor(code);
+        }
+        Err(err) => {
+          #[cfg(debug_assertions)]
+          {
+            panic!("Could not handle command: {err}");
           }
-          _ => (),
         }
       }
-      Resize(width_u16, height_u16) => {
-        // clippy::as_conversions: Will run into problems for rare edge case systems where usize < u16
-        #[allow(clippy::as_conversions)]
-        let height = height_u16 as usize;
-        // clippy::as_conversions: Will run into problems for rare edge case systems where usize < u16
-        #[allow(clippy::as_conversions)]
-        let width = width_u16 as usize;
-        self.view.resize(Size { height, width });
+    } else {
+      #[cfg(debug_assertions)]
+      {
+        panic!("Received and discarded unsupported or non-press event.");
       }
-      _ => {}
     }
   }
 
   fn refresh_screen(&mut self) {
     let _ = Terminal::hide_cursor();
     self.view.render();
-    let _ = Terminal::move_cursor_to(self.position);
+    let _ = Terminal::move_cursor_to(self.view.get_position());
     let _ = Terminal::show_cursor();
     let _ = Terminal::execute();
   }

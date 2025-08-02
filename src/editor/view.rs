@@ -1,25 +1,25 @@
 mod buffer;
+mod line;
+mod location;
 
-use super::terminal::{Size, Terminal};
+use super::{
+  editorcommand::{Direction, EditorCommand},
+  terminal::{Position, Size, Terminal},
+};
 use buffer::Buffer;
-use crossterm::event::KeyCode;
+use location::Location;
 
 const NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-
-#[derive(Copy, Clone, Default)]
-pub struct Location {
-  pub column: usize,
-  pub row: usize,
-}
 
 pub struct View {
   buffer: Buffer,
   needs_redraw: bool,
   size: Size,
-  // The column the user wants the cursor to be on.
-  // This is used to preserve the horizontal cursor position when moving vertically
-  // across lines of different lengths.
+
+  /// The column the user wants the cursor to be on.
+  /// This is used to preserve the horizontal cursor position when moving vertically
+  /// across lines of different lengths.
   virtual_column: usize,
 
   pub location: Location,
@@ -40,25 +40,72 @@ impl Default for View {
 }
 
 impl View {
-  pub fn move_cursor(&mut self, key_code: KeyCode) {
+  pub fn render(&mut self) {
+    if !self.needs_redraw {
+      return;
+    }
+
+    let Size { width, height } = self.size;
+    if width == 0 || height == 0 {
+      return;
+    }
+
+    #[allow(clippy::integer_division)]
+    let vertical_center = height / 2;
+
+    for current_row in 0..height {
+      let row_idx = current_row.saturating_add(self.scroll_offset.row);
+      if let Some(line) = self.buffer.lines.get(row_idx) {
+        let start = self.scroll_offset.column;
+        let end = self.scroll_offset.column.saturating_add(width);
+        Self::render_line(current_row, &line.get(start..end));
+      } else if current_row == vertical_center && self.buffer.lines.is_empty() {
+        Self::render_line(current_row, &Self::get_welcome_message_string(width));
+      } else {
+        Self::render_line(current_row, "~");
+      }
+    }
+    self.needs_redraw = false;
+  }
+
+  pub fn handle_command(&mut self, command: EditorCommand) {
+    match command {
+      EditorCommand::Resize(size) => self.resize(size),
+      EditorCommand::Move(direction) => self.move_text_location(&direction),
+      EditorCommand::Quit => {}
+    }
+  }
+
+  pub fn load(&mut self, filename: &str) {
+    if let Ok(buffer) = Buffer::load(filename) {
+      self.buffer = buffer;
+      self.needs_redraw = true;
+    }
+  }
+
+  pub fn get_position(&self) -> Position {
+    self.location.subtract(&self.scroll_offset).into()
+  }
+
+  fn move_text_location(&mut self, direction: &Direction) {
     let Size { height, .. } = self.size;
     let Location {
       mut column,
       mut row,
     } = self.location;
 
-    match key_code {
-      KeyCode::Up => {
+    match direction {
+      Direction::Up => {
         row = row.saturating_sub(1);
         column = self.virtual_column;
       }
-      KeyCode::Down => {
+      Direction::Down => {
         if row < self.buffer.lines.len() {
           row = row.saturating_add(1);
           column = self.virtual_column;
         }
       }
-      KeyCode::Left => {
+      Direction::Left => {
         if column > 0 {
           column -= 1;
         } else if row > 0 {
@@ -71,7 +118,7 @@ impl View {
         }
         self.virtual_column = column;
       }
-      KeyCode::Right => {
+      Direction::Right => {
         if let Some(line) = self.buffer.lines.get(row) {
           if column < line.len() {
             column += 1;
@@ -82,26 +129,25 @@ impl View {
         }
         self.virtual_column = column;
       }
-      KeyCode::PageUp => {
+      Direction::PageUp => {
         row = row.saturating_sub(height);
       }
-      KeyCode::PageDown => {
+      Direction::PageDown => {
         row = row.saturating_add(height);
         if row > self.buffer.lines.len() {
           row = self.buffer.lines.len();
         }
       }
-      KeyCode::Home => {
+      Direction::Home => {
         column = 0;
         self.virtual_column = column;
       }
-      KeyCode::End => {
+      Direction::End => {
         if let Some(line) = self.buffer.lines.get(row) {
           column = line.len();
         }
         self.virtual_column = column;
       }
-      _ => {}
     }
 
     if let Some(line) = self.buffer.lines.get(row) {
@@ -121,64 +167,32 @@ impl View {
     let Size { width, height } = self.size;
     let Location { column, row } = self.location;
     let mut scroll_offset = self.scroll_offset;
+    let mut offset_changed = false;
 
     if row < scroll_offset.row {
       scroll_offset.row = row;
+      offset_changed = true;
     } else if row >= scroll_offset.row + height {
       scroll_offset.row = row - height + 1;
+      offset_changed = true;
     }
 
     if column < scroll_offset.column {
       scroll_offset.column = column;
+      offset_changed = true;
     } else if column >= scroll_offset.column + width {
       scroll_offset.column = column - width + 1;
+      offset_changed = true;
     }
+
     self.scroll_offset = scroll_offset;
+    self.needs_redraw = offset_changed;
   }
 
-  pub fn resize(&mut self, to: Size) {
+  fn resize(&mut self, to: Size) {
     self.size = to;
+    self.scroll();
     self.needs_redraw = true;
-  }
-
-  pub fn load(&mut self, filename: &str) {
-    if let Ok(buffer) = Buffer::load(filename) {
-      self.buffer = buffer;
-      self.needs_redraw = true;
-    }
-  }
-
-  pub fn render(&mut self) {
-    if !self.needs_redraw {
-      return;
-    }
-
-    let Size { width, height } = self.size;
-    if width == 0 || height == 0 {
-      return;
-    }
-
-    #[allow(clippy::integer_division)]
-    let vertical_center = height / 2;
-
-    for current_row in 0..height {
-      let row_idx = self.scroll_offset.row + current_row;
-      if let Some(line) = self.buffer.lines.get(row_idx) {
-        let start = self.scroll_offset.column;
-        let end = self.scroll_offset.column.saturating_add(width);
-        let truncated_line = if start > line.len() {
-          ""
-        } else {
-          &line[start..std::cmp::min(end, line.len())]
-        };
-        Self::render_line(current_row, truncated_line);
-      } else if current_row == vertical_center && self.buffer.lines.is_empty() {
-        Self::render_line(current_row, &Self::get_welcome_message_string(width));
-      } else {
-        Self::render_line(current_row, "~");
-      }
-    }
-    self.needs_redraw = false;
   }
 
   fn get_welcome_message_string(width: usize) -> String {
