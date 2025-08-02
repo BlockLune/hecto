@@ -590,6 +590,54 @@ std::panic::set_hook(Box::new(move |panic_info| {
 }));
 ```
 
+### `From` & `TryFrom`
+
+通过实现 [`From`](https://doc.rust-lang.org/std/convert/trait.From.html) 或 [`TryFrom`](https://doc.rust-lang.org/std/convert/trait.TryFrom.html) 可以快速实现类型转换。两者的区别在于后者考虑了转换可能失败的情形。
+
+通过实现 `from()`，可以自动获得 `into()`。例如，如果你为 `A` 和 `B` 都实现了 `from()`，那么你既可以通过 `B::from(a)`，也可以通过 `a.into()` 来将 A 的一个实例 `a` 转换为 B 的是个实例。
+
+此外，借助此，Rust 可以实现隐式类型转换：
+
+```rust
+#[derive(Debug)]
+struct ErrorA;
+#[derive(Debug)]
+struct ErrorB;
+
+impl From<ErrorB> for ErrorA { //We allow converting ErrorB into ErrorA here
+    fn from(_: ErrorB) -> ErrorA {
+        ErrorA{} // We would typically carry over some information from ErrorB into ErrorA. We don't do this here because we want to illustrate something else.
+    }
+}
+
+fn do_something_else() -> Result<(), ErrorB> {
+    Ok(())
+}
+
+fn do_something() -> Result<(), ErrorA> {
+    do_something_else()?; // here is where the implicit conversion happens: Even though this function returns an ErrorB upon failure, Rust will use the from implementation to convert it into ErrorA and propagate it up.
+    Ok(())
+}
+
+fn main() {
+    do_something().unwrap();
+}
+```
+
+[Rust Playground](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=ec28acb0c9870e6a8617a8f46f3af427)
+
+### Ranges
+
+类型 `Range<usize>` 允许你使用 `0..10` 来传递参数。支持以下变体：
+
+- `Range` (`start..end`)：包括开始，不包括结束
+- `RangeInclusive` (`start..=end`)：包括开始和结束
+- `RangeFrom` (`start..`)：从一个开始值开始，无限延伸的范围
+- `RangeTo` (`..end`)：从最开始到结束，但不包括结束
+- `RangeToInclusive` (`..=end`)：从最开始到结束，包括结束
+- `RangeFull` (`..`)：代表某类型可能的整个范围
+
+
 ## 其他 Rust 学习资源
 
 ### 博客文章
