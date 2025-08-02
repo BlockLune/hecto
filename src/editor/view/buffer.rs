@@ -1,5 +1,5 @@
-use std::fs::read_to_string;
 use super::line::Line;
+use std::fs::read_to_string;
 
 #[derive(Default)]
 pub struct Buffer {
@@ -9,10 +9,7 @@ pub struct Buffer {
 impl Buffer {
   pub fn load(filename: &str) -> Result<Self, std::io::Error> {
     Ok(Self {
-      lines: read_to_string(filename)?
-        .lines()
-        .map(Line::from)
-        .collect(),
+      lines: read_to_string(filename)?.lines().map(Line::from).collect(),
     })
   }
 }
