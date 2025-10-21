@@ -33,9 +33,11 @@ cargo doc --open
 
 ### Canonical Mode & Raw Mode
 
-默认情况下，我们进入的是“规范模式 (Canonical Mode)” / “熟模式 (Cooked Mode)”，但对于我们的文本编辑器，我们需要的是“原始模式 (Raw Mode)”。我们将借助 [crossterm](https://docs.rs/crossterm/latest/crossterm/) 来实现这个目标。
+默认情况下，我们进入的是“规范模式 (Canonical Mode)” / “熟模式 (Cooked Mode)”，但对于我们的文本编辑器，我们需要的是“原始模式 (Raw Mode)”。
 
 > By default your terminal starts in **canonical mode**, also called **cooked mode**. In this mode, keyboard input is only sent to your program when the user presses `Enter`.
+
+在 Cooked 模式，按回车提交整行输入，程序无需处理细节；Raw 模式则让每个按键都直达程序，由程序实时处理所有输入。我们将借助 [crossterm](https://docs.rs/crossterm/latest/crossterm/) 来实现这个目标。
 
 ### `Result` 和 `match` 语句
 
@@ -60,25 +62,25 @@ fn divide(a: f64, b: f64) -> Result<f64, String> {
 fn main() {
     // 成功的情况
     match divide(10.0, 2.0) {
-        Ok(result) => println!("结果: {}", result),  // 输出: 结果: 5
-        Err(e) => println!("错误: {}", e),
+        Ok(result) => println!("结果：{}", result),  // 输出：结果：5
+        Err(e) => println!("错误：{}", e),
     }
 
     // 失败的情况
     match divide(10.0, 0.0) {
-        Ok(result) => println!("结果: {}", result),
-        Err(e) => println!("错误: {}", e),  // 输出: 错误: 除数不能为零
+        Ok(result) => println!("结果：{}", result),
+        Err(e) => println!("错误：{}", e),  // 输出：错误：除数不能为零
     }
 }
 ```
 
-如果不想进行结构，希望直接获取有效值，或在**出现错误时直接终止程序**，可以使用 `Result` 类型的 `unwrap()` 方法：
+如果不想进行解构，希望直接获取有效值，或在**出现错误时直接终止程序**，可以使用 `Result` 类型的 `unwrap()` 方法：
 
 ```rust
 fn main() {
     // 成功情况 - 正常获取值
     let result = divide(10.0, 2.0).unwrap();
-    println!("结果: {}", result);  // 输出: 结果: 5
+    println!("结果：{}", result);  // 输出：结果：5
 
     // 失败情况 - 程序会 panic 并终止
     // let result = divide(10.0, 0.0).unwrap();  // 这行会崩溃程序
@@ -334,7 +336,7 @@ fn main() {
 hecto/
 ├── Cargo.toml
 └── src/
-    ├── main.rs          <- 根 (crate 根)
+    ├── main.rs          <- 根 （crate 根）
     ├── editor.rs        <- `editor` 模块的入口
     └── editor/
         └── terminal.rs  <- editor 的子模块
@@ -347,7 +349,7 @@ hecto/
 了解更多：
 
 - [Clear explanation of Rust’s module system](https://www.sheshbabu.com/posts/rust-module-system/)
-- [【翻译】关于Rust模块系统的清晰解释 - 知乎](https://zhuanlan.zhihu.com/p/164556350)
+- [【翻译】关于 Rust 模块系统的清晰解释 - 知乎](https://zhuanlan.zhihu.com/p/164556350)
 
 ### `Option`
 
@@ -530,19 +532,11 @@ fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
 
 终端提供两个缓冲区：主屏幕和备用屏幕。备用屏幕不破坏主屏幕内容，可以临时提供一个干净的“工作区”。
 
-1. 临时全屏应用界面
+1. **临时全屏应用界面**：vim、less、tmux、man、htop 等全屏 CLI 程序启动时切换到 alternate screen，退出时再切回主屏幕，于是用户之前看到的历史输出仍保持原样，不会被程序本身的输出“冲掉”。
+2. **避免滚动条污染**：主屏幕（Normal Buffer）支持回滚，而 alternate screen 通常禁用了回滚，程序可以随心所欲地重绘整个窗口，不必担心用户滚动到“奇怪”的区域。
+3. **简化光标定位**：程序可以假设自己从左上角 `(0,0)` 开始绘制，省掉对已有内容的计算，实现起来更直观。
 
-vim、less、tmux、man、htop 等全屏 CLI 程序启动时切换到 alternate screen，退出时再切回主屏幕，于是用户之前看到的历史输出仍保持原样，不会被程序本身的输出“冲掉”。
-
-2. 避免滚动条污染
-
-主屏幕（Normal Buffer）支持回滚，而 alternate screen 通常禁用了回滚，程序可以随心所欲地重绘整个窗口，不必担心用户滚动到“奇怪”的区域。
-
-3. 简化光标定位
-
-程序可以假设自己从左上角(0,0)开始绘制，省掉对已有内容的计算，实现起来更直观。
-
-我们可以用 crossterm 的 `EnterAlternateScreen` 和 `LeaveAlternateScreen` 来切入和切出备用屏幕。
+我们可以用 `crossterm` 的 `EnterAlternateScreen` 和 `LeaveAlternateScreen` 来切入和切出备用屏幕。
 
 ### 闭包
 
@@ -644,13 +638,13 @@ fn main() {
 
 为了解决这个问题，主要引入了两个关键概念和对应的 Rust 库：
 
-1.  **字形簇 (Grapheme Clusters)**
-    - **问题**: 用户眼中的一个字符，在程序内部可能由多个 `char` 组成。例如，`é` 可以是单个 `U+00E9`，也可以是 `e` (`U+0065`) + `´` (`U+0301`) 的组合。如果简单地按 `char` 移动光标或删除，就会把这个“字符”拆开，不符合用户预期。
-    - **解决方案**: `unicode-segmentation` 库提供了将字符串分解为“字形簇”的功能。编辑器通过遍历字形簇而非 `char`，确保了光标移动、删除、插入等操作都是针对用户感知的完整“字符”进行的。
+1. **字形簇 (Grapheme Clusters)**
+   - **问题**: 用户眼中的一个字符，在程序内部可能由多个 `char` 组成。例如，`é` 可以是单个 `U+00E9`，也可以是 `e` (`U+0065`) + `´` (`U+0301`) 的组合。如果简单地按 `char` 移动光标或删除，就会把这个“字符”拆开，不符合用户预期。
+   - **解决方案**: `unicode-segmentation` 库提供了将字符串分解为“字形簇”的功能。编辑器通过遍历字形簇而非 `char`，确保了光标移动、删除、插入等操作都是针对用户感知的完整“字符”进行的。
 
-2.  **字符宽度 (Character Width)**
-    - **问题**: 在等宽字体终端中，不同字符占据的列数（宽度）可能不同。例如，英文字母 `a` 通常占 1 列，而汉字 `好` 通常占 2 列。如果编辑器不知道每个字符的实际显示宽度，就无法正确计算光标在屏幕上的位置，也无法正确地对齐文本。
-    - **解决方案**: `unicode-width` 库可以计算出给定字符串或字符在终端中的显示宽度。编辑器用它来计算每行文本的总显示长度，从而确保光标的水平位置 (`x` 坐标) 与其在文本缓冲中的逻辑位置能够正确对应。
+2. **字符宽度 (Character Width)**
+   - **问题**: 在等宽字体终端中，不同字符占据的列数（宽度）可能不同。例如，英文字母 `a` 通常占 1 列，而汉字 `好` 通常占 2 列。如果编辑器不知道每个字符的实际显示宽度，就无法正确计算光标在屏幕上的位置，也无法正确地对齐文本。
+   - **解决方案**: `unicode-width` 库可以计算出给定字符串或字符在终端中的显示宽度。编辑器用它来计算每行文本的总显示长度，从而确保光标的水平位置 （`x` 坐标） 与其在文本缓冲中的逻辑位置能够正确对应。
 
 ## 其他 Rust 学习资源
 
