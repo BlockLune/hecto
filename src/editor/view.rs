@@ -74,6 +74,7 @@ impl View {
       EditorCommand::Resize(size) => self.resize(size),
       EditorCommand::Move(direction) => self.move_text_location(&direction),
       EditorCommand::Quit => {}
+      EditorCommand::Insert(character) => self.insert_char(character),
     }
   }
 
@@ -249,5 +250,25 @@ impl View {
   fn render_line(at_y: usize, line_text: &str) {
     let result = Terminal::print_row(at_y, line_text);
     debug_assert!(result.is_ok(), "Failed to render line");
+  }
+
+  fn insert_char(&mut self, character: char) {
+    let old_len = self
+      .buffer
+      .lines
+      .get(self.location.line_index)
+      .map_or(0, Line::grapheme_count);
+
+    self.buffer.insert_char(character, &self.location);
+    let new_len = self
+      .buffer
+      .lines
+      .get(self.location.line_index)
+      .map_or(0, Line::grapheme_count);
+    let grapheme_delta = new_len.saturating_sub(old_len);
+    if grapheme_delta > 0 {
+      self.move_right();
+    }
+    self.needs_redraw = true;
   }
 }
